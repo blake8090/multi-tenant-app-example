@@ -9,4 +9,4 @@ create table tenant (
 );
 
 INSERT INTO tenant (id, tenant_id, db_driver_class, db_url, db_username, db_password)
-VALUES (1, 'tenant1', 'org.postgresql.Driver', 'url', 'root', 'password');
+VALUES (1, 'tenant1', 'org.postgresql.Driver', 'jdbc:postgresql://localhost:5001/app', 'root', 'password');

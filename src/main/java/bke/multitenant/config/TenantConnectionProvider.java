@@ -2,6 +2,7 @@ package bke.multitenant.config;
 
 import bke.multitenant.model.master.Tenant;
 import bke.multitenant.repository.master.TenantRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.hibernate.engine.jdbc.connections.spi.AbstractDataSourceBasedMultiTenantConnectionProviderImpl;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,10 +34,14 @@ public class TenantConnectionProvider extends AbstractDataSourceBasedMultiTenant
 
     @Override
     protected DataSource selectDataSource(String tenantIdentifier) {
+        if (StringUtils.isBlank(tenantIdentifier)) {
+            throw new IllegalArgumentException("Tenant identifier was not provided");
+        }
+
         Tenant tenant = tenantRepository.findByTenantId(tenantIdentifier);
 
         if (tenant == null) {
-            throw new IllegalArgumentException("no tenant found");
+            throw new IllegalArgumentException("No tenant found with id " + tenantIdentifier);
         }
 
         try {

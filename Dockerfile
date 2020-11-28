@@ -1,6 +1,6 @@
 FROM openjdk:11.0-jre
 
-COPY wait-for-it.sh /wait-for-it.sh
+COPY docker/wait-for-it.sh /wait-for-it.sh
 RUN chmod +x /wait-for-it.sh
 
 COPY /target/multitenant-*.jar multitenant-*.jar

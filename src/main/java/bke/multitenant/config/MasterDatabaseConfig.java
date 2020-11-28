@@ -31,6 +31,7 @@ public class MasterDatabaseConfig {
         LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
         em.setDataSource(masterDataSource());
         em.setPackagesToScan("bke.multitenant.model.master");
+        em.setPersistenceUnitName("masterdb-persistence-unit");
 
         JpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
         em.setJpaVendorAdapter(vendorAdapter);
@@ -43,7 +44,7 @@ public class MasterDatabaseConfig {
     public DataSource masterDataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName("org.postgresql.Driver");
-        dataSource.setUrl("jdbc:postgresql://localhost:5432/test_db");
+        dataSource.setUrl("jdbc:postgresql://localhost:5000/app");
         dataSource.setUsername("root");
         dataSource.setPassword("password");
         return dataSource;

@@ -1,6 +1,5 @@
 package bke.multitenant.config;
 
-import bke.multitenant.repository.master.TenantRepository;
 import org.hibernate.MultiTenancyStrategy;
 import org.hibernate.cfg.Environment;
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
@@ -23,7 +22,7 @@ import java.util.Map;
 @Configuration
 @EnableTransactionManagement
 @EnableJpaRepositories(
-        basePackages = {"bke.multitenant.repository.tenant"},
+        basePackages = "bke.multitenant.repository.tenant",
         entityManagerFactoryRef = "tenantEntityManagerFactory",
         transactionManagerRef = "tenantTransactionManager"
 )

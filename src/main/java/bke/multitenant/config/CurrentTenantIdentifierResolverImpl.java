@@ -5,12 +5,12 @@ import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
 
 public class CurrentTenantIdentifierResolverImpl implements CurrentTenantIdentifierResolver {
 
-    private static final String DEFAULT_TENANT_ID = "client_tenant_1";
+    private static final String DEFAULT_TENANT_ID = "tenant1";
 
     @Override
     public String resolveCurrentTenantIdentifier() {
-        String tenant = TenantIdentifierContext.getCurrentTenantId();
-        return StringUtils.isNotBlank(tenant) ? tenant : DEFAULT_TENANT_ID;
+        String tenantId = TenantIdentifierContext.getCurrentTenantId();
+        return StringUtils.defaultIfBlank(tenantId, DEFAULT_TENANT_ID);
     }
 
     @Override
