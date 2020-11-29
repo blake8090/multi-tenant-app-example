@@ -1,10 +1,10 @@
 version: '3'
 
 services:
-#  app:
-#    build: .
-#    ports:
-#      - 8080:8080
+  app:
+    build: .
+    ports:
+      - 8080:8080
 
   db-master:
     image: "postgres"
@@ -23,3 +23,12 @@ services:
       - 5001:5432
     volumes:
       - ./docker/db-tenant1-init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  db-tenant2:
+    image: "postgres"
+    env_file:
+      - docker/database.env
+    ports:
+      - 5002:5432
+    volumes:
+      - ./docker/db-tenant2-init.sql:/docker-entrypoint-initdb.d/init.sql

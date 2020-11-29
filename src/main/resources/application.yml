@@ -1,9 +1,14 @@
-#spring:
-#  jpa:
-#    hibernate:
-#      ddl-auto: create
-#    database-platform: org.hibernate.dialect.PostgreSQLDialect
-#  datasource:
-#    url: "jdbc:postgresql://database:5432/test_db"
-#    username: root
-#    password: password
+app:
+  database:
+    master:
+      url: jdbc:postgresql://db-master:5432/app
+      driver-class: org.postgresql.Driver
+      username: root
+      password: password
+      show-sql: true
+      format-sql: true
+      ddl-auto: none
+    tenant:
+      show-sql: true
+      format-sql: true
+      ddl-auto: none

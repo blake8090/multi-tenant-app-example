@@ -25,6 +25,12 @@ import java.util.Properties;
         transactionManagerRef = "masterTransactionManager"
 )
 public class MasterDatabaseConfig {
+    private final MasterDatabaseProperties databaseProperties;
+
+    public MasterDatabaseConfig(MasterDatabaseProperties databaseProperties) {
+        this.databaseProperties = databaseProperties;
+    }
+
     @Primary
     @Bean(name = "masterEntityManagerFactory")
     public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
@@ -43,10 +49,10 @@ public class MasterDatabaseConfig {
     @Bean(name = "masterDataSource")
     public DataSource masterDataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName("org.postgresql.Driver");
-        dataSource.setUrl("jdbc:postgresql://localhost:5000/app");
-        dataSource.setUsername("root");
-        dataSource.setPassword("password");
+        dataSource.setDriverClassName(databaseProperties.getDriverClass());
+        dataSource.setUrl(databaseProperties.getUrl());
+        dataSource.setUsername(databaseProperties.getUsername());
+        dataSource.setPassword(databaseProperties.getPassword());
         return dataSource;
     }
 
@@ -65,9 +71,9 @@ public class MasterDatabaseConfig {
 
     private Properties hibernateProperties() {
         Properties properties = new Properties();
-        properties.setProperty(Environment.HBM2DDL_AUTO, "");
-        properties.setProperty(Environment.SHOW_SQL, "true");
-        properties.setProperty(Environment.DIALECT, "org.hibernate.dialect.PostgreSQLDialect");
+        properties.setProperty(Environment.HBM2DDL_AUTO, databaseProperties.getDdlAuto());
+        properties.setProperty(Environment.SHOW_SQL, Boolean.toString(databaseProperties.isShowSql()));
+        properties.setProperty(Environment.FORMAT_SQL, Boolean.toString(databaseProperties.isFormatSql()));
         return properties;
     }
 }
