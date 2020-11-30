@@ -2,66 +2,60 @@ package bke.multitenant.config;
 
 import bke.multitenant.model.master.Tenant;
 import bke.multitenant.repository.master.TenantRepository;
-import org.apache.commons.lang3.StringUtils;
-import org.hibernate.engine.jdbc.connections.spi.AbstractDataSourceBasedMultiTenantConnectionProviderImpl;
-import org.springframework.beans.BeanUtils;
+import org.hibernate.engine.jdbc.connections.internal.DriverManagerConnectionProviderImpl;
+import org.hibernate.engine.jdbc.connections.spi.AbstractMultiTenantConnectionProvider;
+import org.hibernate.engine.jdbc.connections.spi.ConnectionProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 
-import javax.sql.DataSource;
-import java.sql.Driver;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.stream.StreamSupport;
 
-public class TenantConnectionProvider extends AbstractDataSourceBasedMultiTenantConnectionProviderImpl {
+public class TenantConnectionProvider extends AbstractMultiTenantConnectionProvider {
 
-    private static final long serialVersionUID = 1L;
+    private final TenantRepository tenantRepository;
+
+    private Map<String, ConnectionProvider> connectionProviderMap = new HashMap<>();
 
     @Autowired
-    private TenantRepository tenantRepository;
-
-    @Override
-    protected DataSource selectAnyDataSource() {
-        // todo: cache
-        Iterable<Tenant> all = tenantRepository.findAll();
-        Tenant tenant = all.iterator().next();
-        try {
-            return createDataSource(tenant);
-        } catch (ClassNotFoundException e) {
-            // todo: handle error properly
-            e.printStackTrace();
-            return null;
-        }
+    public TenantConnectionProvider(TenantRepository tenantRepository) {
+        this.tenantRepository = tenantRepository;
     }
 
     @Override
-    protected DataSource selectDataSource(String tenantIdentifier) {
-        if (StringUtils.isBlank(tenantIdentifier)) {
-            throw new IllegalArgumentException("Tenant identifier was not provided");
-        }
-
-        Tenant tenant = tenantRepository.findByTenantId(tenantIdentifier);
-
-        if (tenant == null) {
-            throw new IllegalArgumentException("No tenant found with id " + tenantIdentifier);
-        }
-
-        try {
-            return createDataSource(tenant);
-        } catch (ClassNotFoundException e) {
-            // todo: handle error properly
-            e.printStackTrace();
-            return null;
-        }
+    protected ConnectionProvider getAnyConnectionProvider() {
+        return getConnectionProviderMap()
+                .values()
+                .stream()
+                .findFirst()
+                .orElse(null);
     }
 
-    private DataSource createDataSource(Tenant tenant) throws ClassNotFoundException {
-        Class<?> clazz = Class.forName(tenant.getDatabaseDriverClass());
-        Object driver = BeanUtils.instantiateClass(clazz);
+    @Override
+    protected ConnectionProvider selectConnectionProvider(String identifier) {
+        return getConnectionProviderMap().get(identifier);
+    }
 
-        return new SimpleDriverDataSource(
-                (Driver) driver,
-                tenant.getDatabaseUrl(),
-                tenant.getDatabaseUsername(),
-                tenant.getDatabasePassword()
-        );
+    private Map<String, ConnectionProvider> getConnectionProviderMap() {
+        if (connectionProviderMap.isEmpty()) {
+            Iterable<Tenant> tenants = tenantRepository.findAll();
+            StreamSupport.stream(tenants.spliterator(), false)
+                    .forEach(this::addConnectionProvider);
+        }
+        return connectionProviderMap;
+    }
+
+    private void addConnectionProvider(Tenant tenant) {
+        Properties properties = new Properties();
+        properties.setProperty("hibernate.connection.driver_class", tenant.getDatabaseDriverClass());
+        properties.setProperty("hibernate.connection.url", tenant.getDatabaseUrl());
+        properties.setProperty("hibernate.connection.username", tenant.getDatabaseUsername());
+        properties.setProperty("hibernate.connection.password", tenant.getDatabasePassword());
+
+        DriverManagerConnectionProviderImpl connectionProvider = new DriverManagerConnectionProviderImpl();
+        connectionProvider.configure(properties);
+
+        connectionProviderMap.put(tenant.getTenantId(), connectionProvider);
     }
 }

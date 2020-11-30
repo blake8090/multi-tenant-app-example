@@ -1,5 +1,6 @@
 package bke.multitenant.config;
 
+import bke.multitenant.repository.master.TenantRepository;
 import org.hibernate.MultiTenancyStrategy;
 import org.hibernate.cfg.Environment;
 import org.hibernate.context.spi.CurrentTenantIdentifierResolver;
@@ -42,8 +43,8 @@ public class TenantDatabaseConfig {
 
     @Bean(name = "datasourceBasedMultitenantConnectionProvider")
     @ConditionalOnBean(name = "masterEntityManagerFactory")
-    public MultiTenantConnectionProvider multiTenantConnectionProvider() {
-        return new TenantConnectionProvider();
+    public MultiTenantConnectionProvider multiTenantConnectionProvider(TenantRepository tenantRepository) {
+        return new TenantConnectionProvider(tenantRepository);
     }
 
     @Bean(name = "currentTenantIdentifierResolver")
@@ -68,6 +69,8 @@ public class TenantDatabaseConfig {
         properties.put(Environment.SHOW_SQL, true);
         properties.put(Environment.FORMAT_SQL, true);
         properties.put(Environment.HBM2DDL_AUTO, "none");
+        // todo: figure out how to avoid needing to specify dialect
+        properties.put(Environment.DIALECT, "org.hibernate.dialect.PostgreSQL10Dialect");
         em.setJpaPropertyMap(properties);
 
         return em;
