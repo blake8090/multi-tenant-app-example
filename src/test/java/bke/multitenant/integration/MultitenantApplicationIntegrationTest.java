@@ -7,19 +7,17 @@ import bke.multitenant.model.tenant.Book;
 import bke.multitenant.repository.master.TenantRepository;
 import bke.multitenant.repository.tenant.BookRepository;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.client.RestTemplate;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 @ActiveProfiles("integration-test")
 public class MultitenantApplicationIntegrationTest {
     @LocalServerPort
@@ -30,36 +28,36 @@ public class MultitenantApplicationIntegrationTest {
     @Autowired
     private BookRepository bookRepository;
 
-    private static boolean databasePopulated = false;
+    @Test
+    public void shouldReturnBooksForCorrectTenant() {
+        String tenantId1 = "tenant1";
+        String tenantId2 = "tenant2";
+        String book1 = "Book for Tenant1";
+        String book2 = "Book for Tenant2";
 
-    @BeforeEach
-    public void setup() {
-        if (databasePopulated) {
-            return;
-        }
+        addTenant(tenantId1);
+        addTenant(tenantId2);
 
-        addTenant("tenant1");
-        addTenant("tenant2");
+        addBook(tenantId1, book1);
+        addBook(tenantId2, book2);
 
-        TenantIdentifierContext.setCurrentTenantId("tenant1");
-        Book book = new Book();
-        book.setTitle("Book for Tenant1");
-        bookRepository.save(book);
+        Book[] tenant1Books = getBooksFromTenant(tenantId1);
+        Book[] tenant2Books = getBooksFromTenant(tenantId2);
 
-        TenantIdentifierContext.setCurrentTenantId("tenant2");
-        Book book2 = new Book();
-        book2.setTitle("Book for Tenant2");
-        bookRepository.save(book2);
+        Assertions.assertNotNull(tenant1Books);
+        Assertions.assertEquals(1, tenant1Books.length);
+        Assertions.assertEquals(book1, tenant1Books[0].getTitle());
 
-        databasePopulated = true;
+        Assertions.assertNotNull(tenant2Books);
+        Assertions.assertEquals(1, tenant2Books.length);
+        Assertions.assertEquals(book2, tenant2Books[0].getTitle());
     }
 
-    @Test
-    public void shouldReturnBooksForTenant1() {
+    private Book[] getBooksFromTenant(String tenantId) {
         RestTemplate restTemplate = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.set(TenantIdentifierFilter.TENANT_IDENTIFIER_HEADER, "tenant1");
+        headers.set(TenantIdentifierFilter.TENANT_IDENTIFIER_HEADER, tenantId);
         ResponseEntity<Book[]> responseEntity = restTemplate.exchange(
                 "http://localhost:" + port + "/books",
                 HttpMethod.GET,
@@ -67,29 +65,7 @@ public class MultitenantApplicationIntegrationTest {
                 Book[].class
         );
 
-        Book[] books = responseEntity.getBody();
-        Assertions.assertNotNull(books);
-        Assertions.assertEquals(1, books.length);
-        Assertions.assertEquals("Book for Tenant1", books[0].getTitle());
-    }
-
-    @Test
-    public void shouldReturnBooksForTenant2() {
-        RestTemplate restTemplate = new RestTemplate();
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.set(TenantIdentifierFilter.TENANT_IDENTIFIER_HEADER, "tenant2");
-        ResponseEntity<Book[]> responseEntity = restTemplate.exchange(
-                "http://localhost:" + port + "/books",
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                Book[].class
-        );
-
-        Book[] books = responseEntity.getBody();
-        Assertions.assertNotNull(books);
-        Assertions.assertEquals(1, books.length);
-        Assertions.assertEquals("Book for Tenant2", books[0].getTitle());
+        return responseEntity.getBody();
     }
 
     private void addTenant(String tenantId) {
@@ -100,5 +76,12 @@ public class MultitenantApplicationIntegrationTest {
         tenant.setDatabasePassword("");
         tenant.setTenantId(tenantId);
         tenantRepository.save(tenant);
+    }
+
+    private void addBook(String tenantId, String title) {
+        TenantIdentifierContext.setCurrentTenantId(tenantId);
+        Book book = new Book();
+        book.setTitle(title);
+        bookRepository.save(book);
     }
 }
